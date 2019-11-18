@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import sys
 from time import sleep
@@ -187,8 +189,10 @@ def start_debug(stdscr):
     stdscr.clear()
 
     stdscr.refresh()
+    stdscr.getch()
 
 file = None
+debug = False
 
 for opt in sys.argv[1:]:
     if opt in ["-d", "--debug"]:
@@ -215,4 +219,4 @@ else:
         bf.load(file, True)
         bf.run()
     else:
-        start_interp(bf)
+        start_interp()
