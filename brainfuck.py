@@ -45,7 +45,8 @@ class Tape:
 
 
 class BF:
-    lexicon = {
+
+    lexer = parsepy.lexer.Lexer({
         "inc": r"\+",
         "dec": r"-",
         "left": r"<",
@@ -55,7 +56,7 @@ class BF:
         "fore": r"\[",
         "back": r"\]",
         "cmt": r"[^+-.,<>\[\]]+"
-    }
+    }, {"cmt": lambda t: None})
 
     def __init__(self, prog, from_file=False):
         if from_file:
@@ -69,9 +70,9 @@ class BF:
 
     def load(self, prog, from_file=False):
         if from_file:
-            self.cmds = list(parsepy.lexer.Lexer(BF.lexicon, {"cmt": lambda t: None}).tokenize_file(prog))
+            self.cmds = list(BF.lexer.tokenize_file(prog))
         else:
-            self.cmds = list(parsepy.lexer.Lexer(BF.lexicon, {"cmt": lambda t: None}).tokenize(prog, "<input>"))
+            self.cmds = list(BF.lexer.tokenize(prog, "<input>"))
 
     def find_other(self, pc):
 
