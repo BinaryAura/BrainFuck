@@ -1,7 +1,10 @@
+import os
 import sys
 from time import sleep
 
 import parsepy
+
+import curses
 
 
 STDIN_DELAY = 1
@@ -58,13 +61,14 @@ class BF:
         "cmt": r"[^+-.,<>\[\]]+"
     }, {"cmt": lambda t: None})
 
-    def __init__(self, prog, from_file=False):
-        if from_file:
-            self.file = prog
-            self.load(prog, from_file)
-        else:
-            self.file = "<input>"
-            self.load(prog, from_file)
+    def __init__(self, prog='', from_file=False):
+        if prog:
+            if from_file:
+                self.file = prog
+                self.load(prog, from_file)
+            else:
+                self.file = "<input>"
+                self.load(prog, from_file)
         self.reset()
         self.inbuf = ""
 
@@ -95,6 +99,7 @@ class BF:
     def getch(self):
         if not self.inbuf:
             sys.stdout.write('>? ')
+            sys.stdout.flush()
             # sleep(STDIN_DELAY)
             self.inbuf += sys.stdin.readline()
         out = self.inbuf[0]
@@ -119,7 +124,8 @@ class BF:
             self.curr += 1
             self.tape[self.curr]
         elif command.type == "out":
-            print(chr(self.tape[self.curr]))
+            sys.stdout.write(chr(self.tape[self.curr]))
+            sys.stdout.flush()
         elif command.type == "in":
             self.tape[self.curr] = ord(self.getch()) % 256
         elif command.type == "fore":
@@ -148,25 +154,65 @@ def is_balanced(string):
             count -= 1
     return count == 0
 
-if len(sys.argv) > 1:
-    file = sys.argv[1]
-    bf = BF(file, True)
-    bf.run()
-else:
-    bf = BF('')
+
+def start_interp():
+    global bf
     while True:
         count = 0
         sys.stdout.write('>>> ')
-        # sleep(STDIN_DELAY)
+        sys.stdout.flush()
         buf = sys.stdin.readline()
         if buf.strip() == "quit":
             break
+        elif buf.strip() == "reset":
+            bf.reset()
+            continue
+        elif buf.strip() == "stack":
+            print(bf.tape, bf.curr)
+            print(" " + "  "*(bf.curr - bf.tape.low) + "^")
+            continue
         while not is_balanced(buf):
             sys.stdout.write('... ')
-            # sleep(STDIN_DELAY)
+            sys.stdout.flush()
             buf += sys.stdin.readline()
         bf.load(buf)
         try:
             bf.run()
         except KeyboardInterrupt:
-            print("Keyboard Interrupt", file=sys.stderr)
+            print("\nKeyboard Interrupt", file=sys.stderr)
+
+
+def start_debug(stdscr):
+    global bf
+    stdscr.clear()
+
+    stdscr.refresh()
+
+file = None
+
+for opt in sys.argv[1:]:
+    if opt in ["-d", "--debug"]:
+        debug = True
+    elif opt[0] == '-':
+        print("Unknown option: {}".format(sys.argv[1]), file=sys.stderr)
+        print("USAGE: brainfuck.py [[-d] FILE]")
+        exit(1)
+    elif not file:
+        if not os.path.exists(opt):
+            print("File does not exist: {}".format(opt), file=sys.stderr)
+            exit(2)
+        file = opt
+    else:
+        print("Too many arguments", file=sys.stderr)
+        exit(1)
+
+bf = BF()
+
+if debug:
+    curses.wrapper(start_debug)
+else:
+    if file:
+        bf.load(file, True)
+        bf.run()
+    else:
+        start_interp(bf)
